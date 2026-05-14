@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPGW Bank Workflow Console</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background: #f0f4f8; color: #333; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
+        h1 { border-bottom: 2px solid #e1e8ed; padding-bottom: 10px; color: #1a202c; }
+        h2 { color: #2d3748; font-size: 1.2em; border-left: 4px solid #3182ce; padding-left: 10px; display: flex; align-items: center; justify-content: space-between; }
+        .card { border: 1px solid #e2e8f0; padding: 20px; margin-top: 20px; border-radius: 8px; background: #f8fafc; }
+        .row { display: flex; gap: 15px; margin-bottom: 15px; }
+        .col { flex: 1; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; font-size: 0.9em; color: #4a5568; }
+        input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-family: monospace; background: #fff; }
+        input[readonly] { background: #edf2f7; color: #718096; }
+        button { padding: 10px 20px; background: #3182ce; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: background 0.2s; }
+        button:hover { background: #2b6cb0; }
+        .btn-purple { background: #805ad5; }
+        .btn-purple:hover { background: #6b46c1; }
+        pre { background: #1a202c; color: #68d391; padding: 15px; border-radius: 6px; overflow-x: auto; min-height: 40px; font-size: 0.9em; white-space: pre-wrap;}
+        .alert { padding: 12px; background: #ebf8ff; border-left: 4px solid #3182ce; margin-bottom: 15px; border-radius: 4px; font-size: 0.95em;}
+        .success { background: #f0fff4; border-left-color: #48bb78; }
+        .log-text { font-size: 0.85em; color: #48bb78; margin-top: 10px; display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>OPGW Bank Workflow Console</h1>
+
+        <div class="card">
+            <h2>1. Auth Callback Capture</h2>
+            <div id="authLog" class="alert">Waiting for operator redirection...</div>
+            <div class="row">
+                <div class="col">
+                    <label>Authorization Code:</label>
+                    <input type="text" id="authCode" readonly placeholder="Waiting for callback...">
+                </div>
+                <div class="col">
+                    <label>Trace ID (x-correlator):</label>
+                    <input type="text" id="xCorrelator" readonly placeholder="Waiting for callback...">
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>2. Retrieve Access Token (via Backend Proxy)</h2>
+            <button onclick="getToken()">🚀 Exchange Code & Save Token</button>
+            <span id="tokenLog" class="log-text"></span>
+            
+            <label style="margin-top: 15px;">Current Access Token:</label>
+            <input type="text" id="accessToken" readonly placeholder="Waiting for token...">
+        </div>
+
+        <div class="card">
+            <h2>3. Business API: Number Verification (via Backend Proxy)</h2>
+            <div class="row">
+                <div class="col" style="flex: 2;">
+                    <label>Phone Number to Verify:</label>
+                    <input type="text" id="phoneNumber" value="+60143304567" placeholder="e.g., +60143304567">
+                </div>
+                <div class="col" style="flex: 1; display: flex; align-items: flex-end;">
+                    <button onclick="verifyNumber()" style="width: 100%; background: #dd6b20;">📡 Verify & Save to DB</button>
+                </div>
+            </div>
+            <span id="nvLog" class="log-text"></span>
+            
+            <label style="margin-top: 15px;">Operator Response:</label>
+            <pre id="nvResponse">Waiting for action...</pre>
+        </div>
+
+        <div class="card" style="background: #e6fffa; border-color: #81e6d9;">
+            <h2>4. Full-Chain Database Archival Query</h2>
+            <div class="row" style="align-items: flex-end;">
+                <div class="col" style="flex: 3;">
+                    <label>Query current Trace ID (x-correlator):</label>
+                    <input type="text" id="queryId" placeholder="Will auto-fill the current ID">
+                </div>
+                <div class="col" style="flex: 1;">
+                    <button class="btn-purple" onclick="fetchRecords()" style="width: 100%;">🔍 Query Records</button>
+                </div>
+            </div>
+            <pre id="dbResult" style="background: #234e52; color: #a0aec0;">Waiting for query...</pre>
+        </div>
+    </div>
+
+    <script>
+        // 1. Page Load
+        window.onload = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const correlatorFromUrl = urlParams.get('x-correlator') || urlParams.get('correlator'); 
+
+            if (correlatorFromUrl) {
+                document.getElementById('xCorrelator').value = correlatorFromUrl;
+                document.getElementById('queryId').value = correlatorFromUrl;
+            }
+
+            if (code) {
+                document.getElementById('authLog').innerHTML = `<strong>✅ Callback intercepted successfully!</strong>`;
+                document.getElementById('authLog').className = "alert success";
+                document.getElementById('authCode').value = code;
+            }
+        };
+
+        // 2. Get Token (Calling our own proxy to bypass CORS)
+        async function getToken() {
+            const code = document.getElementById('authCode').value;
+            const correlator = document.getElementById('xCorrelator').value;
+            const logSpan = document.getElementById('tokenLog');
+            
+            if (!code) return alert("Missing Authorization Code! Please complete Step 1.");
+            
+            logSpan.innerText = "Generating JWT & sending request via Proxy...";
+            logSpan.style.color = "#d69e2e";
+
+            try {
+                const res = await fetch('/api/proxy-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: code, correlator: correlator })
+                });
+                
+                const data = await res.json();
+                
+                if (data._correlator) {
+                    document.getElementById('xCorrelator').value = data._correlator;
+                    document.getElementById('queryId').value = data._correlator;
+                }
+                
+                if (data.access_token) {
+                    document.getElementById('accessToken').value = data.access_token;
+                    logSpan.innerText = "✅ Token retrieved! Saving to DB...";
+                    logSpan.style.color = "#48bb78";
+
+                    // 自动落库
+                    const dbRes = await fetch('/api/auth-callback', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ authCode: code, token: data.access_token, userId: document.getElementById('xCorrelator').value })
+                    });
+                    if(dbRes.ok) logSpan.innerText = "✅ Token retrieved and saved to DB!";
+                } else {
+                    logSpan.innerText = "❌ Failed to retrieve: " + JSON.stringify(data);
+                    logSpan.style.color = "#e53e3e";
+                }
+            } catch (error) {
+                logSpan.innerText = "❌ Request error: " + error.message;
+                logSpan.style.color = "#e53e3e";
+            }
+        }
+
+        // 3. Verify Number (Calling our own proxy)
+        async function verifyNumber() {
+            const token = document.getElementById('accessToken').value;
+            const phone = document.getElementById('phoneNumber').value;
+            const correlator = document.getElementById('xCorrelator').value;
+            const logSpan = document.getElementById('nvLog');
+            const responseBox = document.getElementById('nvResponse');
+
+            if (!token) return alert("Missing Access Token! Please complete Step 2.");
+            if (!phone) return alert("Please enter a phone number!");
+
+            logSpan.innerText = "Sending request via Proxy...";
+            logSpan.style.color = "#d69e2e";
+            responseBox.innerText = "Waiting for response...";
+
+            try {
+                // 改成了请求自己的中转站 /api/proxy-nv
+                const res = await fetch('/api/proxy-nv', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: token, phoneNumber: phone, correlator: correlator })
+                });
+
+                const data = await res.json();
+                
+                // 去除为了前端方便附带的 _correlator，让显示纯粹的业务返回
+                const displayData = { ...data };
+                delete displayData._correlator;
+                responseBox.innerText = JSON.stringify(displayData, null, 2);
+
+                if (data.devicePhoneNumberVerified !== undefined) {
+                    logSpan.innerText = "✅ Verification successful! Saving to DB...";
+                    logSpan.style.color = "#48bb78";
+
+                    // 自动落库
+                    const dbRes = await fetch('/api/number-verify', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            phoneNumber: phone, 
+                            verified: data.devicePhoneNumberVerified, 
+                            matchResult: true, 
+                            transactionId: correlator || 'unknown'
+                        })
+                    });
+                    if(dbRes.ok) logSpan.innerText = "✅ NV result saved to DB! (Check Step 4 to view)";
+                } else {
+                    logSpan.innerText = "❌ Verification failed or abnormal response";
+                    logSpan.style.color = "#e53e3e";
+                }
+            } catch (error) {
+                logSpan.innerText = "❌ Request error: " + error.message;
+                logSpan.style.color = "#e53e3e";
+                responseBox.innerText = "Network error";
+            }
+        }
+
+        // 4. Query DB Records
+        async function fetchRecords() {
+            const id = document.getElementById('queryId').value;
+            const dbBox = document.getElementById('dbResult');
+            
+            if (!id) return alert('Missing x-correlator, cannot query!');
+            
+            dbBox.style.color = "#a0aec0";
+            dbBox.innerText = "Querying Netlify backend...";
+
+            try {
+                const res = await fetch(`/api/get-records?id=${id}`);
+                const data = await res.json();
+                
+                if (res.ok) {
+                    dbBox.style.color = "#81e6d9";
+                    dbBox.innerText = JSON.stringify(data, null, 2);
+                } else {
+                    dbBox.style.color = "#fc8181";
+                    dbBox.innerText = `Query failed: ${JSON.stringify(data)}`;
+                }
+            } catch (error) {
+                dbBox.style.color = "#fc8181";
+                dbBox.innerText = "❌ Cannot connect to query API";
+            }
+        }
+    </script>
+</body>
+</html>

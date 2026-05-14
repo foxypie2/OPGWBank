@@ -1,0 +1,12 @@
+{
+  "keys": [
+    {
+      "kty": "RSA",
+      "use": "sig",
+      "kid": "opgw-bank-key-1",
+      "alg": "RS256",
+      "n": "tpJMdZVxytf3KKBP2E5vyqlVgeVGP0dBpg6Kt0d2LJmGRBtB1x0efrZNagbpJA7mOHfJ_Bj3HtoDdPAXdtc5Y_WQSQazdrukMjqzx0_NL4ZofDcszO3SU8lJji6f6NZ0bG7Dhd4ECDlyisTEeKKiRdAjBUmnXKQUK1PJhaZC6p_upD-KXHZ58ZbNsw4mroOGd1yAdhBj9XV7t0_DX9fVXvqhwqXRqoOIPypWLG4-ldzHiIEW9zL8cgg0h_etjvMxRr9xHr9f_3IcKA_DoR9DeamX-hLmjq4jk2OVnQzu5xFqVeJ9OqDj9_VR669Xs3lHuC3wAfMiO0In6gLgNvu2mQ",
+      "e": "AQAB"
+    }
+  ]
+}
