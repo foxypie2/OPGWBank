@@ -105,12 +105,19 @@
         };
 
         // 2. Get Token (Calling our own proxy to bypass CORS)
+        let tokenSubmitting = false;
         async function getToken() {
+            if (tokenSubmitting) return;
+            
+            const btn = document.querySelector('button[onclick="getToken()"]');
             const code = document.getElementById('authCode').value;
             const correlator = document.getElementById('xCorrelator').value;
             const logSpan = document.getElementById('tokenLog');
             
             if (!code) return alert("Missing Authorization Code! Please complete Step 1.");
+            
+            tokenSubmitting = true;
+            if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.style.cursor = 'not-allowed'; }
             
             logSpan.innerText = "Generating JWT & sending request via Proxy...";
             logSpan.style.color = "#d69e2e";
@@ -148,6 +155,9 @@
             } catch (error) {
                 logSpan.innerText = "❌ Request error: " + error.message;
                 logSpan.style.color = "#e53e3e";
+            } finally {
+                tokenSubmitting = false;
+                if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
             }
         }
 

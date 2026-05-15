@@ -35,8 +35,8 @@ MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC2kkx1lXHK1/cooE/YTm/KqVWB5UY/
 # ──────────────────────────────────────────────────────────────────────
 # Constants
 # ──────────────────────────────────────────────────────────────────────
-AUTHORIZE_URL = "https://opgwtest03-auth.u.com.my/api/oauth2/camc/authorize"
-TOKEN_URL = "https://opgwtest03.u.com.my/api/oauth2/camc/token"
+AUTHORIZE_URL="https://opgwtest03-auth.u.com.my/api/oauth2/camc/authorize"
+TOKEN_URL="https://opgwtest03.u.com.my/api/oauth2/camc/token"
 REDIRECT_URI = "https://opgw-bank.netlify.app/"
 CLIENT_ID = "OPGWBank"
 SCOPE = "openid dpv:FraudPreventionAndDetection number-verification:verify"
@@ -189,21 +189,21 @@ def exchange_code_for_token(code, client_assertion):
 # Tkinter GUI
 # ──────────────────────────────────────────────────────────────────────
 
-# Dark theme colors
-DARK_BG = "#1e1e2e"
-DARKER_BG = "#181825"
-SURFACE = "#313244"
-TEXT = "#cdd6f4"
-ACCENT = "#89b4fa"
-ACCENT_HOVER = "#74c7ec"
-SUCCESS = "#a6e3a1"
-ERROR_COLOR = "#f38ba8"
-WARN = "#fab387"
-BORDER = "#45475a"
-INPUT_BG = "#313244"
-BUTTON_BG = "#45475a"
-BUTTON_FG = "#cdd6f4"
-BUTTON_ACCENT = "#89b4fa"
+# UI/UX Pro Max Fintech palette (OPGW Bank Design System V2)
+DARK_BG = "#020617"
+DARKER_BG = "#0F172A"
+SURFACE = "#222735"
+TEXT = "#F8FAFC"
+ACCENT = "#3B82F6"
+ACCENT_HOVER = "#2563EB"
+SUCCESS = "#10B981"
+ERROR_COLOR = "#EF4444"
+WARN = "#F59E0B"
+BORDER = "#334155"
+INPUT_BG = "#1E293B"
+BUTTON_BG = "#334155"
+BUTTON_FG = "#E2E8F0"
+BUTTON_ACCENT = "#3B82F6"
 
 
 def copy_to_clipboard(widget, text):
@@ -277,7 +277,7 @@ class OPGWAuthApp:
             text="Signed JWT → Authorize → Capture 302 → Extract Code → Exchange Token → Open Netlify",
             font=("Segoe UI", 9),
             bg=DARK_BG,
-            fg="#6c7086",
+            fg="#94A3B8",
         )
         subtitle.pack(anchor="w", pady=(2, 0))
 
@@ -318,9 +318,9 @@ class OPGWAuthApp:
             text="AUTHORIZE",
             font=("Segoe UI", 13, "bold"),
             bg=ACCENT,
-            fg="#1e1e2e",
-            activebackground="#b4d0ff",
-            activeforeground="#1e1e2e",
+            fg="#020617",
+            activebackground="#2563EB",
+            activeforeground="#F8FAFC",
             relief="flat",
             borderwidth=0,
             padx=30,
@@ -359,7 +359,7 @@ class OPGWAuthApp:
             text="Built for ZTE header enrichment — HTTP request via Python, not browser.",
             font=("Segoe UI", 8),
             bg=DARK_BG,
-            fg="#585b70",
+            fg="#64748B",
         )
         footer.pack(side=tk.BOTTOM, pady=(10, 0))
 
@@ -429,7 +429,7 @@ class OPGWAuthApp:
             bg=SURFACE,
             fg=TEXT,
             activebackground=ACCENT_HOVER,
-            activeforeground="#1e1e2e",
+            activeforeground="#F8FAFC",
             relief="flat",
             borderwidth=0,
             padx=10,
@@ -497,7 +497,7 @@ class OPGWAuthApp:
 
     def run_authorize(self):
         """The one-click authorize flow."""
-        self.auth_btn.configure(state=tk.DISABLED, bg=SURFACE, fg="#6c7086")
+        self.auth_btn.configure(state=tk.DISABLED, bg=SURFACE, fg="#94A3B8")
         self.status_text.configure(state=tk.NORMAL)
         self.status_text.delete("1.0", tk.END)
         self.status_text.configure(state=tk.DISABLED)
@@ -512,7 +512,7 @@ class OPGWAuthApp:
             self.auth_btn.configure(
                 state=tk.NORMAL,
                 bg=ACCENT,
-                fg="#1e1e2e",
+                fg="#020617",
             )
 
     def _do_authorize(self):
